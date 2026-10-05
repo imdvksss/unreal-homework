@@ -24,15 +24,12 @@ void UQuestSystemComponent::BeginPlay()
 
 	for (TActorIterator<AQuest> It(GetWorld(), AQuest::StaticClass()); It; ++It)
 	{
-		ActiveQuests.AddUnique(*It);
+		RegisterQuest(*It);
 	}
-	
 	for (const TSubclassOf<AQuest>& QuestClass : Quests)
 	{
-		AQuest *Quest = GetWorld()->SpawnActor<AQuest>(QuestClass);
-		ActiveQuests.Add(Quest);
+		RegisterQuest(GetWorld()->SpawnActor<AQuest>(QuestClass));
 	}
-	
 }
 
 
@@ -44,8 +41,32 @@ void UQuestSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 	// ...
 }
 
-void UQuestSystemComponent::RegisterQuest(AQuest* NewQuest)
+void UQuestSystemComponent::GetActiveAndStartedQuests(TArray<AQuest*>& OutQuests)
 {
-	ActiveQuests.AddUnique(NewQuest);
+	for (AQuest* Quest : ActiveQuests)
+	{
+		if (Quest && Quest->GetQuestStatus() == EQuestStatus::Started)
+		{
+			OutQuests.Add(Quest);
+		}
+	}
 }
 
+void UQuestSystemComponent::RegisterQuest(AQuest* NewQuest)
+{
+	if (!NewQuest)
+	{
+		return;
+	}
+
+	ActiveQuests.AddUnique(NewQuest);
+	NewQuest->OnQuestStatusChanged.AddUniqueDynamic(this, &UQuestSystemComponent::HandleQuestStatusChanged);
+}
+
+void UQuestSystemComponent::HandleQuestStatusChanged(AQuest* Quest, EQuestStatus OldStatus, EQuestStatus NewStatus)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Quest %s: %s -> %s"),
+		*GetNameSafe(Quest),
+		*UEnum::GetValueAsString(OldStatus),
+		*UEnum::GetValueAsString(NewStatus));
+}

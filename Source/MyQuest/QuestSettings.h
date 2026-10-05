@@ -14,14 +14,14 @@ UCLASS()
 class MYQUEST_API UQuestSettings : public UDataAsset
 {
 	GENERATED_BODY()
-	
+
 public:
 	UPROPERTY(EditAnywhere)
 	FText Name;
-	
+
 	UPROPERTY(EditAnywhere)
 	TArray<TSubclassOf<UQuestCondition>> StartConditions;
-	
+
 	UPROPERTY(EditAnywhere)
-	TArray<TSubclassOf<UQuestCondition>> StopConditions;
+	TArray<TSubclassOf<UQuestCondition>> EndConditions;
 };

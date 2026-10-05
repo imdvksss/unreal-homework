@@ -4,16 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Quest.h"
 #include "QuestSystemComponent.generated.h"
-
-class AQuest;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class MYQUEST_API UQuestSystemComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:	
+public:
 	// Sets default values for this component's properties
 	UQuestSystemComponent();
 
@@ -21,14 +20,19 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-public:	
+public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	void RegisterQuest(AQuest *NewQuest);
+	void GetActiveAndStartedQuests(TArray<AQuest*>& OutQuests);
+	void RegisterQuest(AQuest* NewQuest);
+
 protected:
+	UFUNCTION()
+	void HandleQuestStatusChanged(AQuest* Quest, EQuestStatus OldStatus, EQuestStatus NewStatus);
+
 	UPROPERTY(EditAnywhere)
 	TArray<TSubclassOf<AQuest>> Quests;
-	
+
 	UPROPERTY()
 	TArray<AQuest*> ActiveQuests;
 };

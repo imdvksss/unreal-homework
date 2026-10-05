@@ -1,3 +1,5 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -9,8 +11,11 @@ enum class ETriggerVolumeEvent : uint8
 {
 	OnEnter UMETA(DisplayName = "On Enter"),
 	OnExit  UMETA(DisplayName = "On Exit")
-   };
+};
 
+/**
+ * 
+ */
 UCLASS()
 class MYQUEST_API UTriggerVolume_QuestCondition : public UQuestCondition
 {
@@ -20,13 +25,12 @@ public:
 	virtual void StartCondition() override;
 	virtual void StopCondition() override;
 
-protected:
 	UFUNCTION()
-	void HandleOverlap(AActor* OverlappedActor, AActor* OtherActor);
+	void StartOverlap(AActor* OverlappedActor, AActor* OtherActor);
 
-	UPROPERTY(EditAnywhere, Category = "Condition")
+	UPROPERTY(EditAnywhere)
 	FName OtherTag;
 
-	UPROPERTY(EditAnywhere, Category = "Condition")
+	UPROPERTY(EditAnywhere)
 	ETriggerVolumeEvent TriggerEvent = ETriggerVolumeEvent::OnEnter;
 };
