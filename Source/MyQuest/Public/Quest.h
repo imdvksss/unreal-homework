@@ -49,7 +49,7 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UBoxComponent> TriggerBox;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UQuestSettings> QuestSettings;
 
 	UPROPERTY()

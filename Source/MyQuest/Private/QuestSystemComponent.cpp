@@ -21,11 +21,6 @@ UQuestSystemComponent::UQuestSystemComponent()
 void UQuestSystemComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	for (TActorIterator<AQuest> It(GetWorld(), AQuest::StaticClass()); It; ++It)
-	{
-		RegisterQuest(*It);
-	}
 	for (const TSubclassOf<AQuest>& QuestClass : Quests)
 	{
 		RegisterQuest(GetWorld()->SpawnActor<AQuest>(QuestClass));

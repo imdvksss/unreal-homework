@@ -16,8 +16,11 @@ class MYQUEST_API UQuestSettings : public UDataAsset
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FText Name;
+
+	UPROPERTY(Instanced, EditAnywhere)
+	TArray<TObjectPtr<UQuestCondition>> StartConditionsDirect;
 
 	UPROPERTY(EditAnywhere)
 	TArray<TSubclassOf<UQuestCondition>> StartConditions;

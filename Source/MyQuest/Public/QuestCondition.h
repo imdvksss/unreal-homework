@@ -11,7 +11,7 @@ DECLARE_MULTICAST_DELEGATE(FOnQuestConditionCompleted)
 /**
  * 
  */
-UCLASS(Abstract, Blueprintable, BlueprintType)
+UCLASS(Abstract, Blueprintable, BlueprintType, EditInlineNew)
 class MYQUEST_API UQuestCondition : public UObject
 {
 	GENERATED_BODY()
