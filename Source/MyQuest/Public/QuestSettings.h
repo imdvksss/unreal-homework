@@ -20,11 +20,16 @@ public:
 	FText Name;
 
 	UPROPERTY(Instanced, EditAnywhere)
-	TArray<TObjectPtr<UQuestCondition>> StartConditionsDirect;
+	TArray<TObjectPtr<UQuestCondition>> StartConditionsInst;
 
-	UPROPERTY(EditAnywhere)
-	TArray<TSubclassOf<UQuestCondition>> StartConditions;
+	UPROPERTY()
+	TArray<TSubclassOf<UQuestCondition>> StartConditions_DEPRECATED;
 
-	UPROPERTY(EditAnywhere)
-	TArray<TSubclassOf<UQuestCondition>> EndConditions;
+	UPROPERTY(Instanced, EditAnywhere)
+	TArray<TObjectPtr<UQuestCondition>> EndConditionsInst;
+
+	UPROPERTY()
+	TArray<TSubclassOf<UQuestCondition>> EndConditions_DEPRECATED;
+
+	virtual void PostLoad() override;
 };

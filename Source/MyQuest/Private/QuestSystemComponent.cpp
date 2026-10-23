@@ -5,6 +5,7 @@
 
 #include "EngineUtils.h"
 #include "Quest.h"
+#include "QuestCondition.h"
 
 // Sets default values for this component's properties
 UQuestSystemComponent::UQuestSystemComponent()
@@ -23,7 +24,14 @@ void UQuestSystemComponent::BeginPlay()
 	Super::BeginPlay();
 	for (const TSubclassOf<AQuest>& QuestClass : Quests)
 	{
-		RegisterQuest(GetWorld()->SpawnActor<AQuest>(QuestClass));
+		AQuest* Quest = GetWorld()->SpawnActor<AQuest>(QuestClass);
+		if (!Quest)
+		{
+			UE_LOG(LogQuest, Error, TEXT("QuestSystem: failed to spawn quest of class %s"), *GetNameSafe(QuestClass.Get()));
+			continue;
+		}
+		UE_LOG(LogQuest, Log, TEXT("QuestSystem: spawned quest %s"), *Quest->GetName());
+		RegisterQuest(Quest);
 	}
 }
 
@@ -51,16 +59,24 @@ void UQuestSystemComponent::RegisterQuest(AQuest* NewQuest)
 {
 	if (!NewQuest)
 	{
+		UE_LOG(LogQuest, Warning, TEXT("QuestSystem: tried to register null quest"));
 		return;
 	}
 
-	ActiveQuests.AddUnique(NewQuest);
+	if (ActiveQuests.Contains(NewQuest))
+	{
+		UE_LOG(LogQuest, Verbose, TEXT("QuestSystem: quest %s is already registered"), *NewQuest->GetName());
+		return;
+	}
+
+	ActiveQuests.Add(NewQuest);
+	UE_LOG(LogQuest, Log, TEXT("QuestSystem: registered quest %s (total %d)"), *NewQuest->GetName(), ActiveQuests.Num());
 	NewQuest->OnQuestStatusChanged.AddUniqueDynamic(this, &UQuestSystemComponent::HandleQuestStatusChanged);
 }
 
 void UQuestSystemComponent::HandleQuestStatusChanged(AQuest* Quest, EQuestStatus OldStatus, EQuestStatus NewStatus)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Quest %s: %s -> %s"),
+	UE_LOG(LogQuest, Verbose, TEXT("QuestSystem: received status change of %s: %s -> %s"),
 		*GetNameSafe(Quest),
 		*UEnum::GetValueAsString(OldStatus),
 		*UEnum::GetValueAsString(NewStatus));

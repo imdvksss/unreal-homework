@@ -9,6 +9,11 @@
 #include "Components/BoxComponent.h"
 #include "GameFramework/GameModeBase.h"
 
+int32 bDebugInstantFinish = 0;
+FAutoConsoleVariableRef CVarDebugInstantFinish(TEXT("quest.InstantFinish"),
+	bDebugInstantFinish, TEXT("Debug Instantly Finish Quests"),
+	ECVF_Cheat);
+
 // Sets default values
 AQuest::AQuest()
 {
@@ -26,26 +31,38 @@ void AQuest::BeginPlay()
 {
 	Super::BeginPlay();
 
+	UQuestSystemComponent* QuestComponent = nullptr;
 	if (AGameModeBase* GameMode = GetWorld()->GetAuthGameMode())
 	{
-		if (UQuestSystemComponent* QuestComponent = GameMode->GetComponentByClass<UQuestSystemComponent>())
-		{
-			QuestComponent->RegisterQuest(this);
-		}
+		QuestComponent = GameMode->GetComponentByClass<UQuestSystemComponent>();
 	}
 
-	if (!ensureMsgf(QuestSettings, TEXT("QuestSettings is not set for quest %s"), *GetNameSafe(this)))
+	if (QuestComponent)
 	{
+		QuestComponent->RegisterQuest(this);
+	}
+	else
+	{
+		UE_LOG(LogQuest, Warning, TEXT("Quest %s: QuestSystemComponent not found in GameMode, quest is not registered"), *GetName());
+	}
+
+	if (!QuestSettings)
+	{
+		UE_LOG(LogQuest, Error, TEXT("Quest %s: QuestSettings is not set, quest will not start"), *GetName());
 		return;
 	}
 
-	for (const TSubclassOf<UQuestCondition>& ConditionTemplate : QuestSettings->StartConditions)
+	UE_LOG(LogQuest, Log, TEXT("Quest %s (%s): BeginPlay, %d start conditions"),
+		*GetName(), *QuestSettings->Name.ToString(), QuestSettings->StartConditionsInst.Num());
+
+	for (const UQuestCondition* ConditionTemplate : QuestSettings->StartConditionsInst)
 	{
 		if (!ensureMsgf(ConditionTemplate, TEXT("Bad setup for quest %s"), *GetNameSafe(this)))
 		{
 			return;
 		}
-		UQuestCondition* QuestCondition = NewObject<UQuestCondition>(this, ConditionTemplate);
+		UQuestCondition* QuestCondition = DuplicateObject<UQuestCondition>(ConditionTemplate, this);
+		UE_LOG(LogQuest, Verbose, TEXT("Quest %s: starting start condition %s"), *GetName(), *QuestCondition->GetName());
 		QuestCondition->StartCondition();
 		QuestCondition->OnQuestConditionCompleted.AddUObject(this, &AQuest::UpdateStartStatus);
 		StartConditions.Add(QuestCondition);
@@ -60,27 +77,42 @@ void AQuest::Tick(float DeltaTime)
 
 void AQuest::UpdateStartStatus()
 {
+	int32 CompletedCount = 0;
 	for (UQuestCondition* Condition : StartConditions)
 	{
 		if (!ensure(Condition))
 		{
 			return;
 		}
-		if (!Condition->IsCompleted())
+		if (Condition->IsCompleted())
 		{
-			return;
+			++CompletedCount;
 		}
+	}
+
+	UE_LOG(LogQuest, Verbose, TEXT("Quest %s: start conditions %d/%d"), *GetName(), CompletedCount, StartConditions.Num());
+	if (CompletedCount < StartConditions.Num())
+	{
+		return;
 	}
 
 	SetQuestStatus(EQuestStatus::Started);
 
-	for (const TSubclassOf<UQuestCondition>& ConditionTemplate : QuestSettings->EndConditions)
+	if (bDebugInstantFinish)
+	{
+		UE_LOG(LogQuest, Warning, TEXT("Quest %s: finished instantly by quest.InstantFinish"), *GetName());
+		SetQuestStatus(EQuestStatus::Completed);
+		return;
+	}
+
+	for (const UQuestCondition* ConditionTemplate : QuestSettings->EndConditionsInst)
 	{
 		if (!ensureMsgf(ConditionTemplate, TEXT("Bad setup for quest %s"), *GetNameSafe(this)))
 		{
 			return;
 		}
-		UQuestCondition* QuestCondition = NewObject<UQuestCondition>(this, ConditionTemplate);
+		UQuestCondition* QuestCondition = DuplicateObject<UQuestCondition>(ConditionTemplate, this);
+		UE_LOG(LogQuest, Verbose, TEXT("Quest %s: starting end condition %s"), *GetName(), *QuestCondition->GetName());
 		QuestCondition->StartCondition();
 		QuestCondition->OnQuestConditionCompleted.AddUObject(this, &AQuest::UpdateEndStatus);
 		EndConditions.Add(QuestCondition);
@@ -89,16 +121,23 @@ void AQuest::UpdateStartStatus()
 
 void AQuest::UpdateEndStatus()
 {
+	int32 CompletedCount = 0;
 	for (UQuestCondition* Condition : EndConditions)
 	{
 		if (!ensure(Condition))
 		{
 			return;
 		}
-		if (!Condition->IsCompleted())
+		if (Condition->IsCompleted())
 		{
-			return;
+			++CompletedCount;
 		}
+	}
+
+	UE_LOG(LogQuest, Verbose, TEXT("Quest %s: end conditions %d/%d"), *GetName(), CompletedCount, EndConditions.Num());
+	if (CompletedCount < EndConditions.Num())
+	{
+		return;
 	}
 
 	SetQuestStatus(EQuestStatus::Completed);
@@ -113,5 +152,8 @@ void AQuest::SetQuestStatus(EQuestStatus NewStatus)
 
 	const EQuestStatus OldStatus = QuestStatus;
 	QuestStatus = NewStatus;
+
+	UE_LOG(LogQuest, Log, TEXT("Quest %s: %s -> %s"), *GetName(),
+		*UEnum::GetValueAsString(OldStatus), *UEnum::GetValueAsString(NewStatus));
 	OnQuestStatusChanged.Broadcast(this, OldStatus, NewStatus);
 }
